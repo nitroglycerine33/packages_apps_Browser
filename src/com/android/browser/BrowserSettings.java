@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2011 The Android Open Source Project
+ * Copyright (c) 2011, 2012, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -128,6 +129,8 @@ public class BrowserSettings implements OnSharedPreferenceChangeListener,
     private SearchEngine mSearchEngine;
 
     private static String sFactoryResetUrl;
+
+    private static boolean sWebGLAvailable;
 
     public static void initialize(final Context context) {
         sInstance = new BrowserSettings(context);
@@ -275,6 +278,8 @@ public class BrowserSettings implements OnSharedPreferenceChangeListener,
         settings.setSaveFormData(saveFormdata());
         settings.setUseWideViewPort(isWideViewport());
         settings.setAutoFillProfile(getAutoFillProfile());
+        setIsWebGLAvailable(settings.isWebGLAvailable());
+        settings.setWebGLEnabled(isWebGLAvailable() && isWebGLEnabled());
 
         String ua = mCustomUserAgents.get(settings);
         if (ua != null) {
@@ -371,10 +376,6 @@ public class BrowserSettings implements OnSharedPreferenceChangeListener,
         syncManagedSettings();
         if (PREF_SEARCH_ENGINE.equals(key)) {
             updateSearchEngine(false);
-        } else if (PREF_FULLSCREEN.equals(key)) {
-            if (mController.getUi() != null) {
-                mController.getUi().setFullscreen(useFullscreen());
-            }
         } else if (PREF_ENABLE_QUICK_CONTROLS.equals(key)) {
             if (mController.getUi() != null) {
                 mController.getUi().setUseQuickControls(sharedPreferences.getBoolean(key, false));
@@ -652,6 +653,10 @@ public class BrowserSettings implements OnSharedPreferenceChangeListener,
         return mPrefs.getString(PREF_SEARCH_ENGINE, SearchEngine.GOOGLE);
     }
 
+    public int getUserAgent() {
+        return Integer.parseInt(mPrefs.getString(PREF_USER_AGENT, "0"));
+    }
+
     public boolean allowAppTabs() {
         return mPrefs.getBoolean(PREF_ALLOW_APP_TABS, false);
     }
@@ -732,13 +737,6 @@ public class BrowserSettings implements OnSharedPreferenceChangeListener,
             return false;
         }
         return mPrefs.getBoolean(PREF_ENABLE_HARDWARE_ACCEL_SKIA, false);
-    }
-
-    public int getUserAgent() {
-        if (!isDebugEnabled()) {
-            return 0;
-        }
-        return Integer.parseInt(mPrefs.getString(PREF_USER_AGENT, "0"));
     }
 
     // -----------------------------
@@ -827,16 +825,16 @@ public class BrowserSettings implements OnSharedPreferenceChangeListener,
         return HomeProvider.MOST_VISITED.equals(getHomePage());
     }
 
-    public boolean useFullscreen() {
-        return mPrefs.getBoolean(PREF_FULLSCREEN, false);
-    }
-
     public boolean useInvertedRendering() {
         return mPrefs.getBoolean(PREF_INVERTED, false);
     }
 
     public float getInvertedContrast() {
         return 1 + (mPrefs.getInt(PREF_INVERTED_CONTRAST, 0) / 10f);
+    }
+
+    public boolean isWebGLEnabled() {
+        return mPrefs.getBoolean(PREF_ENABLE_WEBGL, true);
     }
 
     // -----------------------------
@@ -913,6 +911,30 @@ public class BrowserSettings implements OnSharedPreferenceChangeListener,
 
     public String getLinkPrefetchEnabled() {
         return mPrefs.getString(PREF_LINK_PREFETCH, getDefaultLinkPrefetchSetting());
+    }
+
+    public String getVideoPreloadOnWifiOnlyPreferenceString() {
+        return mContext.getResources().getString(R.string.pref_video_preload_value_wifi_only);
+    }
+
+    public String getVideoPreloadAlwaysPreferenceString() {
+        return mContext.getResources().getString(R.string.pref_video_preload_value_always);
+    }
+
+    public String getDefaultVideoPreloadSetting() {
+        return mContext.getResources().getString(R.string.pref_video_preload_default_value);
+    }
+
+    public String getVideoPreloadEnabled() {
+        return mPrefs.getString(PREF_VIDEO_PRELOAD, getDefaultVideoPreloadSetting());
+    }
+
+    private static void setIsWebGLAvailable(boolean available) {
+        sWebGLAvailable = available;
+    }
+
+    public static boolean isWebGLAvailable() {
+        return sWebGLAvailable;
     }
 
     // -----------------------------
